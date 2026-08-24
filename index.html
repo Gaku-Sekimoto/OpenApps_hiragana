@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#fff8ed">
+  <meta name="description" content="ゆびで楽しく、ひらがなの書き順となぞり書きを練習できる子ども向けアプリ">
+  <title>ひらがな すいすい</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="ひらがな すいすい">
+        <span class="brand-mark" aria-hidden="true">あ</span>
+        <div><h1>ひらがな すいすい</h1><p>ゆびで なぞって おぼえよう</p></div>
+      </div>
+      <button class="sound-button" id="soundButton" type="button" aria-label="音を消す" aria-pressed="true"><span aria-hidden="true">♪</span> おと</button>
+    </header>
+
+    <main>
+      <nav class="row-tabs" id="rowTabs" aria-label="れんしゅうする行"></nav>
+
+      <section class="practice-layout">
+        <aside class="challenge-card" aria-label="いまのチャレンジ">
+          <span class="eyebrow">いまの チャレンジ</span>
+          <h2 id="challengeTitle">あ行</h2>
+          <div class="row-progress" id="rowProgress" aria-label="あ行の進みぐあい"></div>
+          <div class="progress-copy"><span id="progressText">0 / 5 もじ</span><span id="starCount">☆ 0</span></div>
+          <button id="resetRow" class="quiet-button" type="button">はじめから</button>
+        </aside>
+
+        <section class="practice-card">
+          <div class="card-head">
+            <div>
+              <span class="step-label">つぎの もじ</span>
+              <h2 id="characterName">「あ」を なぞろう</h2>
+            </div>
+            <div class="character-nav" aria-label="文字をえらぶ">
+              <button id="prevChar" type="button" aria-label="まえの文字">‹</button>
+              <div id="characterDots" class="character-dots"></div>
+              <button id="nextChar" type="button" aria-label="つぎの文字">›</button>
+            </div>
+          </div>
+
+          <div class="guide-strip">
+            <div class="guide-icon" aria-hidden="true">☝</div>
+            <p><strong>すうじの じゅんに</strong><br>てんせんの うえを なぞってね</p>
+            <button id="showOrder" type="button">かきじゅんを みる</button>
+          </div>
+
+          <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="traceCanvas" aria-label="ひらがなをなぞる場所"></canvas>
+            <div id="orderOverlay" class="order-overlay" aria-hidden="true"></div>
+            <div id="successMessage" class="success-message" role="status" aria-live="polite">
+              <span>できた！</span><small>とっても じょうず</small>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="clearCanvas" class="clear-button" type="button"><span aria-hidden="true">↻</span> もういちど</button>
+            <button id="checkAnswer" class="check-button" type="button"><span aria-hidden="true">✓</span> できた！</button>
+          </div>
+          <p class="hint" id="hintText" aria-live="polite">ゆびを はなさずに、ゆっくり なぞってみよう</p>
+        </section>
+      </section>
+    </main>
+  </div>
+  <div id="confetti" class="confetti" aria-hidden="true"></div>
+  <script src="app.js"></script>
+</body>
+</html>
