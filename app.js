@@ -11,8 +11,7 @@ const rows = [
   { name: 'わ行', chars: ['わ','を','ん'] }
 ];
 
-const strokeCounts = {あ:3,い:2,う:2,え:2,お:3,か:3,き:4,く:1,け:3,こ:2,さ:3,し:1,す:2,せ:3,そ:1,た:4,ち:2,つ:1,て:1,と:2,な:4,に:3,ぬ:2,ね:2,の:1,は:3,ひ:1,ふ:4,へ:1,ほ:4,ま:3,み:2,む:3,め:2,も:3,や:3,ゆ:2,よ:2,ら:2,り:2,る:1,れ:2,ろ:1,わ:2,を:3,ん:1};
-const startPositions = [[28,20],[49,18],[34,45],[61,40]];
+const strokeColors = ['#f06b72','#38b86a','#46b9eb','#a678dd'];
 const state = { row:0, char:0, completed:{}, sound:true, drawing:false, points:0, hasDrawn:false };
 const $ = id => document.getElementById(id);
 const canvas = $('traceCanvas');
@@ -21,6 +20,7 @@ let ratio = 1;
 
 function key(row = state.row, char = state.char) { return `${row}-${char}`; }
 function currentChar() { return rows[state.row].chars[state.char]; }
+function currentStrokes() { return HIRAGANA_STROKES[currentChar().codePointAt(0).toString(16).padStart(5,'0')] || []; }
 
 function renderTabs() {
   $('rowTabs').innerHTML = rows.map((row,i) => `<button class="row-tab ${i===state.row?'active':''}" data-row="${i}" type="button">${row.name}</button>`).join('');
@@ -48,6 +48,7 @@ function renderCharacter() {
   $('orderOverlay').innerHTML = '';
   state.hasDrawn = false; state.points = 0;
   resizeCanvas();
+  renderOrderGuide();
 }
 
 function selectRow(index) { state.row=index; state.char=0; renderTabs(); renderProgress(); renderCharacter(); }
@@ -63,21 +64,27 @@ function resizeCanvas() {
 function drawGuide() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   ctx.clearRect(0,0,w,h);
-  const size = Math.min(w,h) * .72;
+  const layout = getStrokeLayout();
+  const paths = currentStrokes();
   ctx.save();
-  ctx.font = `900 ${size}px "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.lineWidth = Math.max(16, size*.105); ctx.lineJoin='round';
-  ctx.strokeStyle='#eadfd4'; ctx.setLineDash([3,11]);
-  ctx.strokeText(currentChar(),w/2,h/2+size*.03);
-  ctx.fillStyle='rgba(255,255,255,.01)'; ctx.fillText(currentChar(),w/2,h/2+size*.03);
+  ctx.translate(layout.x, layout.y); ctx.scale(layout.scale, layout.scale);
+  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=7;
+  paths.forEach((path,i) => {
+    ctx.strokeStyle = strokeColors[i % strokeColors.length] + '9e';
+    ctx.stroke(new Path2D(path));
+  });
   ctx.restore();
+}
+
+function getStrokeLayout() {
+  const scale = Math.min(canvas.clientWidth,canvas.clientHeight) / 109 * .88;
+  return { scale, x:(canvas.clientWidth-109*scale)/2, y:(canvas.clientHeight-109*scale)/2 };
 }
 
 function pointFromEvent(e) { const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
 function beginDraw(e) {
   e.preventDefault(); state.drawing=true; state.hasDrawn=true; const p=pointFromEvent(e);
-  ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=Math.max(18,canvas.clientWidth*.052); ctx.strokeStyle='#ef8150';
+  ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=Math.max(10,canvas.clientWidth*.032); ctx.strokeStyle='#eb6f3e';
   canvas.setPointerCapture?.(e.pointerId);
 }
 function moveDraw(e) { if(!state.drawing)return; e.preventDefault(); const p=pointFromEvent(e); ctx.lineTo(p.x,p.y); ctx.stroke(); state.points++; }
@@ -85,11 +92,26 @@ function endDraw(e) { if(!state.drawing)return; state.drawing=false; canvas.rele
 
 function clearDrawing(message='ゆびを はなさずに、ゆっくり なぞってみよう') { state.hasDrawn=false; state.points=0; $('successMessage').classList.remove('show'); $('hintText').textContent=message; drawGuide(); }
 
+function renderOrderGuide(replay = false) {
+  const paths = currentStrokes();
+  const layout = getStrokeLayout(), w=canvas.clientWidth, h=canvas.clientHeight;
+  $('orderOverlay').innerHTML = paths.map((d,i) => {
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d);
+    const start=path.getPointAtLength(0), ahead=path.getPointAtLength(Math.min(8,path.getTotalLength()));
+    const angle=Math.atan2(ahead.y-start.y,ahead.x-start.x)*180/Math.PI;
+    const left=(layout.x+start.x*layout.scale)/w*100, top=(layout.y+start.y*layout.scale)/h*100;
+    return `<span class="stroke-guide" style="left:${left}%;top:${top}%;--stroke-color:${strokeColors[i%strokeColors.length]};--arrow-angle:${angle}deg;animation-delay:${i*.12}s"><span class="stroke-number">${i+1}</span><span class="stroke-arrow">➜</span></span>`;
+  }).join('');
+  if (replay) {
+    document.querySelectorAll('.stroke-guide').forEach((item,i) => {
+      item.animate([{transform:'scale(.55)',opacity:.25},{transform:'scale(1.18)',opacity:1},{transform:'scale(1)',opacity:1}], {duration:500,delay:i*160});
+    });
+  }
+}
+
 function showOrder() {
-  const count=strokeCounts[currentChar()]||2;
-  $('orderOverlay').innerHTML = startPositions.slice(0,count).map((p,i)=>`<span class="stroke-number" style="left:${p[0]}%;top:${p[1]}%;animation-delay:${i*.12}s">${i+1}</span>`).join('');
+  renderOrderGuide(true);
   $('hintText').textContent='1、2、3… の じゅんで かいてみよう';
-  setTimeout(()=>{ $('orderOverlay').innerHTML=''; },3500);
 }
 
 function checkAnswer() {

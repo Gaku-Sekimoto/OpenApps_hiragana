@@ -16,3 +16,7 @@ GitHub Pagesで公開する場合は、このフォルダのファイルをリ�
 - 完了時の正解音と紙吹雪
 - 端末内への進捗保存
 - タブレット・スマートフォン対応
+
+## 書き順データ
+
+書き順の線データには [KanjiVG](https://kanjivg.tagaini.net/)（Ulrich Apel、CC BY-SA 3.0）を使用しています。ライセンスは `KANJIVG-LICENSE.txt` を参照してください。
