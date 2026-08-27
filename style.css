@@ -61,9 +61,10 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 .canvas-wrap { position:relative; margin:auto; width:min(100%, 520px); aspect-ratio:1.18; border:2px solid #eee2d5; border-radius:26px; overflow:hidden; background-color:#fffefb; background-image:linear-gradient(#f3e9df 1px,transparent 1px),linear-gradient(90deg,#f3e9df 1px,transparent 1px); background-size:50% 50%; touch-action:none; }
 #traceCanvas { width:100%; height:100%; display:block; touch-action:none; }
 .order-overlay { position:absolute; inset:0; pointer-events:none; }
-.stroke-guide { position:absolute; display:flex; align-items:center; gap:3px; font-weight:900; animation:bop .4s both; transform-origin:left center; }
-.stroke-number { display:grid; place-items:center; width:25px; height:25px; border-radius:50%; color:white; background:var(--stroke-color); font-weight:900; font-size:13px; box-shadow:0 2px 0 rgba(70,55,45,.22); }
-.stroke-arrow { font-family:Arial,sans-serif; font-size:26px; line-height:1; color:var(--stroke-color); text-shadow:0 2px white; transform:rotate(var(--arrow-angle)); transform-origin:left center; }
+.stroke-guide { position:absolute; display:flex; align-items:center; gap:0; pointer-events:none; transform:translate(-12px,-50%); animation:guideFade .42s both; }
+.stroke-number { display:grid; place-items:center; flex:0 0 auto; width:25px; height:25px; border-radius:50%; color:white; background:var(--stroke-color); font-weight:900; font-size:13px; box-shadow:0 2px 0 rgba(70,55,45,.22); z-index:1; }
+.stroke-arrow { display:block; margin-left:-2px; font-family:Arial,sans-serif; font-size:27px; font-weight:900; line-height:1; color:var(--stroke-color); -webkit-text-stroke:1px white; text-shadow:0 2px 3px white; transform:rotate(var(--arrow-angle)); transform-origin:left center; }
+@keyframes guideFade { from { opacity:0; } to { opacity:1; } }
 @keyframes bop { from { transform:scale(0); } 70% { transform:scale(1.2); } }
 .success-message { position:absolute; inset:0; display:flex; visibility:hidden; opacity:0; align-items:center; justify-content:center; flex-direction:column; background:rgba(255,253,248,.72); backdrop-filter:blur(2px); transition:.25s; }
 .success-message.show { visibility:visible; opacity:1; }

@@ -8,10 +8,12 @@ const rows = [
   { name: 'ま行', chars: ['ま','み','む','め','も'] },
   { name: 'や行', chars: ['や','ゆ','よ'] },
   { name: 'ら行', chars: ['ら','り','る','れ','ろ'] },
-  { name: 'わ行', chars: ['わ','を','ん'] }
+  { name: 'わ行', chars: ['わ','を','ん'] },
+  { name: 'すうじ', chars: ['0','1','2','3','4','5','6','7','8','9'], unit: 'こ' }
 ];
 
 const strokeColors = ['#f06b72','#38b86a','#46b9eb','#a678dd'];
+const orderGuideOffsets = { '5': [{ x:0, y:11 }, { x:0, y:0 }] };
 const state = { row:0, char:0, completed:{}, sound:true, drawing:false, points:0, hasDrawn:false };
 const $ = id => document.getElementById(id);
 const canvas = $('traceCanvas');
@@ -20,7 +22,10 @@ let ratio = 1;
 
 function key(row = state.row, char = state.char) { return `${row}-${char}`; }
 function currentChar() { return rows[state.row].chars[state.char]; }
-function currentStrokes() { return HIRAGANA_STROKES[currentChar().codePointAt(0).toString(16).padStart(5,'0')] || []; }
+function currentStrokes() {
+  const char = currentChar();
+  return NUMBER_STROKES[char] || HIRAGANA_STROKES[char.codePointAt(0).toString(16).padStart(5,'0')] || [];
+}
 
 function renderTabs() {
   $('rowTabs').innerHTML = rows.map((row,i) => `<button class="row-tab ${i===state.row?'active':''}" data-row="${i}" type="button">${row.name}</button>`).join('');
@@ -29,12 +34,13 @@ function renderTabs() {
 
 function renderProgress() {
   const row = rows[state.row];
+  const unit = row.unit || 'もじ';
   const done = row.chars.filter((_,i) => state.completed[key(state.row,i)]).length;
   $('challengeTitle').textContent = row.name;
   $('rowProgress').innerHTML = row.chars.map((_,i) => `<span class="progress-pill ${state.completed[key(state.row,i)]?'done':''}"></span>`).join('');
-  $('progressText').textContent = `${done} / ${row.chars.length} もじ`;
+  $('progressText').textContent = `${done} / ${row.chars.length} ${unit}`;
   $('starCount').textContent = `★ ${done}`;
-  $('rowProgress').setAttribute('aria-label', `${row.name}は${row.chars.length}文字中${done}文字できました`);
+  $('rowProgress').setAttribute('aria-label', `${row.name}は${row.chars.length}${unit}中${done}${unit}できました`);
 }
 
 function renderCharacter() {
@@ -95,16 +101,18 @@ function clearDrawing(message='ゆびを はなさずに、ゆっくり なぞ�
 function renderOrderGuide(replay = false) {
   const paths = currentStrokes();
   const layout = getStrokeLayout(), w=canvas.clientWidth, h=canvas.clientHeight;
-  $('orderOverlay').innerHTML = paths.map((d,i) => {
+  $('orderOverlay').innerHTML=paths.map((d,i) => {
     const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d);
-    const start=path.getPointAtLength(0), ahead=path.getPointAtLength(Math.min(8,path.getTotalLength()));
+    const total=path.getTotalLength(), start=path.getPointAtLength(0), ahead=path.getPointAtLength(Math.min(9,total));
     const angle=Math.atan2(ahead.y-start.y,ahead.x-start.x)*180/Math.PI;
-    const left=(layout.x+start.x*layout.scale)/w*100, top=(layout.y+start.y*layout.scale)/h*100;
-    return `<span class="stroke-guide" style="left:${left}%;top:${top}%;--stroke-color:${strokeColors[i%strokeColors.length]};--arrow-angle:${angle}deg;animation-delay:${i*.12}s"><span class="stroke-number">${i+1}</span><span class="stroke-arrow">➜</span></span>`;
+    const offset=orderGuideOffsets[currentChar()]?.[i] || {x:0,y:0};
+    const left=(layout.x+(start.x+offset.x)*layout.scale)/w*100, top=(layout.y+(start.y+offset.y)*layout.scale)/h*100;
+    const color=strokeColors[i%strokeColors.length];
+    return `<span class="stroke-guide" style="left:${left}%;top:${top}%;--stroke-color:${color};--arrow-angle:${angle}deg;animation-delay:${i*.12}s"><span class="stroke-number">${i+1}</span><span class="stroke-arrow">➜</span></span>`;
   }).join('');
   if (replay) {
     document.querySelectorAll('.stroke-guide').forEach((item,i) => {
-      item.animate([{transform:'scale(.55)',opacity:.25},{transform:'scale(1.18)',opacity:1},{transform:'scale(1)',opacity:1}], {duration:500,delay:i*160});
+      item.animate([{opacity:.15},{opacity:1},{opacity:.35},{opacity:1}], {duration:650,delay:i*90});
     });
   }
 }
