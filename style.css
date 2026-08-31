@@ -41,6 +41,8 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 .row-progress { display:flex; gap:7px; }
 .progress-pill { height:9px; flex:1; border-radius:9px; background:#ece4da; transition:.35s; }
 .progress-pill.done { background:var(--mint); }
+.progress-track { display:block; width:100%; height:9px; border-radius:9px; background:#ece4da; overflow:hidden; }
+.progress-fill { display:block; height:100%; border-radius:inherit; background:var(--mint); transition:width .35s; }
 .progress-copy { display:flex; justify-content:space-between; margin-top:9px; color:var(--muted); font-size:12px; font-weight:800; }
 #starCount { color:#e8aa1d; }
 .quiet-button { width:100%; margin-top:24px; padding:10px; background:transparent; border:1px solid var(--line); border-radius:13px; color:var(--muted); font-weight:800; }
@@ -51,6 +53,8 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 .character-nav > button { width:42px; height:42px; border-radius:50%; border:1px solid var(--line); background:white; font-size:30px; line-height:1; }
 .character-nav > button:disabled { opacity:.25; cursor:default; }
 .character-dots { display:flex; gap:7px; }
+.number-select-label { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; font-weight:800; }
+.number-select { min-width:78px; padding:8px 30px 8px 12px; border:1px solid var(--line); border-radius:12px; background:white; color:var(--ink); font-size:18px; font-weight:900; }
 .char-dot { width:11px; height:11px; border:0; padding:0; border-radius:50%; background:#ddd4ca; }
 .char-dot.active { width:26px; border-radius:8px; background:var(--orange); }
 .char-dot.done { background:var(--mint); }
@@ -102,6 +106,7 @@ button:focus-visible { outline:4px solid rgba(100,201,173,.45); outline-offset:3
   .character-nav { gap:7px; }
   .character-nav > button { width:36px; height:36px; }
   .character-dots { display:none; }
+  .character-dots.number-mode { display:flex; }
   .guide-strip p { font-size:11px; }
   .actions button { min-width:0; flex:1; padding:12px 8px; }
 }

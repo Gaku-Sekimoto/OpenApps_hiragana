@@ -9,11 +9,10 @@ const rows = [
   { name: 'や行', chars: ['や','ゆ','よ'] },
   { name: 'ら行', chars: ['ら','り','る','れ','ろ'] },
   { name: 'わ行', chars: ['わ','を','ん'] },
-  { name: 'すうじ', chars: ['0','1','2','3','4','5','6','7','8','9'], unit: 'こ' }
+  { name: 'すうじ', chars: Array.from({length:101},(_,i)=>String(i)), unit: 'こ' }
 ];
 
 const strokeColors = ['#f06b72','#38b86a','#46b9eb','#a678dd'];
-const orderGuideOffsets = { '5': [{ x:0, y:11 }, { x:0, y:0 }] };
 const state = { row:0, char:0, completed:{}, sound:true, drawing:false, points:0, hasDrawn:false };
 const $ = id => document.getElementById(id);
 const canvas = $('traceCanvas');
@@ -24,7 +23,20 @@ function key(row = state.row, char = state.char) { return `${row}-${char}`; }
 function currentChar() { return rows[state.row].chars[state.char]; }
 function currentStrokes() {
   const char = currentChar();
-  return NUMBER_STROKES[char] || HIRAGANA_STROKES[char.codePointAt(0).toString(16).padStart(5,'0')] || [];
+  if (/^\d+$/.test(char)) return buildNumberStrokes(char);
+  const paths=HIRAGANA_STROKES[char.codePointAt(0).toString(16).padStart(5,'0')] || [];
+  return paths.map(d=>({d,scale:1,x:0,y:0,guideOffset:{x:0,y:0}}));
+}
+
+function buildNumberStrokes(value) {
+  const digits=[...value], count=digits.length;
+  const scale=count===1?1:count===2?.57:.43;
+  const positions=count===1?[0]:count===2?[-5,48]:[-4,31,66];
+  const y=(109-109*scale)/2;
+  return digits.flatMap((digit,digitIndex)=>(NUMBER_STROKES[digit]||[]).map((d,strokeIndex)=>({
+    d, scale, x:positions[digitIndex], y,
+    guideOffset:digit==='5'&&strokeIndex===0?{x:0,y:11}:{x:0,y:0}
+  })));
 }
 
 function renderTabs() {
@@ -37,7 +49,9 @@ function renderProgress() {
   const unit = row.unit || 'もじ';
   const done = row.chars.filter((_,i) => state.completed[key(state.row,i)]).length;
   $('challengeTitle').textContent = row.name;
-  $('rowProgress').innerHTML = row.chars.map((_,i) => `<span class="progress-pill ${state.completed[key(state.row,i)]?'done':''}"></span>`).join('');
+  $('rowProgress').innerHTML = row.unit
+    ? `<span class="progress-track"><span class="progress-fill" style="width:${done/row.chars.length*100}%"></span></span>`
+    : row.chars.map((_,i) => `<span class="progress-pill ${state.completed[key(state.row,i)]?'done':''}"></span>`).join('');
   $('progressText').textContent = `${done} / ${row.chars.length} ${unit}`;
   $('starCount').textContent = `★ ${done}`;
   $('rowProgress').setAttribute('aria-label', `${row.name}は${row.chars.length}${unit}中${done}${unit}できました`);
@@ -46,8 +60,14 @@ function renderProgress() {
 function renderCharacter() {
   const row = rows[state.row], char = currentChar();
   $('characterName').textContent = `「${char}」を なぞろう`;
-  $('characterDots').innerHTML = row.chars.map((c,i) => `<button type="button" aria-label="${c}" data-char="${i}" class="char-dot ${i===state.char?'active':''} ${state.completed[key(state.row,i)]?'done':''}"></button>`).join('');
-  document.querySelectorAll('.char-dot').forEach(btn => btn.onclick = () => selectChar(+btn.dataset.char));
+  $('characterDots').classList.toggle('number-mode',!!row.unit);
+  if (row.unit) {
+    $('characterDots').innerHTML=`<label class="number-select-label">すうじ <select id="numberSelect" class="number-select" aria-label="れんしゅうする数字">${row.chars.map((c,i)=>`<option value="${i}" ${i===state.char?'selected':''}>${c}</option>`).join('')}</select></label>`;
+    $('numberSelect').onchange=e=>selectChar(+e.target.value);
+  } else {
+    $('characterDots').innerHTML = row.chars.map((c,i) => `<button type="button" aria-label="${c}" data-char="${i}" class="char-dot ${i===state.char?'active':''} ${state.completed[key(state.row,i)]?'done':''}"></button>`).join('');
+    document.querySelectorAll('.char-dot').forEach(btn => btn.onclick = () => selectChar(+btn.dataset.char));
+  }
   $('prevChar').disabled = state.char === 0;
   $('nextChar').disabled = state.char === row.chars.length - 1;
   $('successMessage').classList.remove('show');
@@ -74,10 +94,12 @@ function drawGuide() {
   const paths = currentStrokes();
   ctx.save();
   ctx.translate(layout.x, layout.y); ctx.scale(layout.scale, layout.scale);
-  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=7;
-  paths.forEach((path,i) => {
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  paths.forEach((stroke,i) => {
+    ctx.save(); ctx.translate(stroke.x,stroke.y); ctx.scale(stroke.scale,stroke.scale);
+    ctx.lineWidth=7/stroke.scale;
     ctx.strokeStyle = strokeColors[i % strokeColors.length] + '9e';
-    ctx.stroke(new Path2D(path));
+    ctx.stroke(new Path2D(stroke.d)); ctx.restore();
   });
   ctx.restore();
 }
@@ -101,12 +123,13 @@ function clearDrawing(message='ゆびを はなさずに、ゆっくり なぞ�
 function renderOrderGuide(replay = false) {
   const paths = currentStrokes();
   const layout = getStrokeLayout(), w=canvas.clientWidth, h=canvas.clientHeight;
-  $('orderOverlay').innerHTML=paths.map((d,i) => {
-    const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d);
+  $('orderOverlay').innerHTML=paths.map((stroke,i) => {
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',stroke.d);
     const total=path.getTotalLength(), start=path.getPointAtLength(0), ahead=path.getPointAtLength(Math.min(9,total));
     const angle=Math.atan2(ahead.y-start.y,ahead.x-start.x)*180/Math.PI;
-    const offset=orderGuideOffsets[currentChar()]?.[i] || {x:0,y:0};
-    const left=(layout.x+(start.x+offset.x)*layout.scale)/w*100, top=(layout.y+(start.y+offset.y)*layout.scale)/h*100;
+    const offset=stroke.guideOffset;
+    const pointX=(start.x+offset.x)*stroke.scale+stroke.x, pointY=(start.y+offset.y)*stroke.scale+stroke.y;
+    const left=(layout.x+pointX*layout.scale)/w*100, top=(layout.y+pointY*layout.scale)/h*100;
     const color=strokeColors[i%strokeColors.length];
     return `<span class="stroke-guide" style="left:${left}%;top:${top}%;--stroke-color:${color};--arrow-angle:${angle}deg;animation-delay:${i*.12}s"><span class="stroke-number">${i+1}</span><span class="stroke-arrow">➜</span></span>`;
   }).join('');
